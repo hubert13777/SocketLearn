@@ -29,9 +29,9 @@ public class TCPServer {
                 String receive=in.readUTF();
                 System.out.println("客户端: "+receive);
                 out.writeUTF("Hi ( ´･･)ﾉ(._.`)");
-                while (true){
-
-                }
+//                while (true){
+//
+//                }
                 server.close();
             } catch (IOException e) {
                 e.printStackTrace();

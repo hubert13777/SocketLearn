@@ -33,9 +33,9 @@ public class TCPClient {
             out.writeUTF("Hello ヾ(•ω•`)o");
             String received = in.readUTF();
             System.out.println("服务器响应: " + received);
-            while(true){
-
-            }
+//            while(true){
+//
+//            }
             client.close();
             System.out.println("已关闭与" + client.getInetAddress() + "的连接");
         } catch (IOException e) {

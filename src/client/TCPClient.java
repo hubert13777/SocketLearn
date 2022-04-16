@@ -1,8 +1,8 @@
 package client;
 
 import java.io.*;
+import java.net.ConnectException;
 import java.net.Socket;
-import java.net.SocketAddress;
 
 public class TCPClient {
     public static void main(String[] args) {
@@ -22,21 +22,40 @@ public class TCPClient {
             }
         }
         System.out.println("启动客户端...");
+
         try {
             System.out.println("正在尝试连接到主机 " + serverAddress + ":" + targetPort + "...");
-            Socket client = new Socket(serverAddress, targetPort);
+            BufferedReader bf = new BufferedReader(new InputStreamReader(System.in));
+            Socket client = null;
+            while (true) {
+                try {
+                    client = new Socket(serverAddress, targetPort);
+                    System.out.println();
+                    break;
+                } catch (ConnectException e) {
+                    System.out.print("连接失败，可能是服务器未启动，按下回车重试");
+                    bf.readLine();
+                }
+            }
             System.out.println("连接" + client.getRemoteSocketAddress() + "成功!");
+            System.out.println("============================================================");
+            System.out.println("                【输入\"/send_file\"传输文件】                ");
+            System.out.println("                【输入\"quit\"或\"/q\"退出会话】                ");
 
-            DataOutputStream out = new DataOutputStream(client.getOutputStream());
-            DataInputStream in = new DataInputStream(client.getInputStream());
+            ClientSender sender = new ClientSender(client);
+            Thread sendThread = new Thread(sender, "发送线程");
+            ClientReceiver receiver = new ClientReceiver(client);
+            Thread receiveThread = new Thread(receiver, "接收线程");
+            sendThread.start();
+            receiveThread.start();
 
-            out.writeUTF("Hello ヾ(•ω•`)o");
-            String received = in.readUTF();
-            System.out.println("服务器响应: " + received);
-//            while(true){
-//
-//            }
-            client.close();
+            while (!client.isClosed()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             System.out.println("已关闭与" + client.getInetAddress() + "的连接");
         } catch (IOException e) {
             e.printStackTrace();

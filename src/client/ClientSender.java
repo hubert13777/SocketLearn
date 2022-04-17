@@ -2,6 +2,7 @@ package client;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class ClientSender implements Runnable {
     Socket client;
@@ -28,7 +29,7 @@ public class ClientSender implements Runnable {
                 if (filename.equals("/q")) {
                     System.out.println("用户终止发送");
                     return;
-                } else if (filename.equals(null)) {
+                } else if (filename.equals("")) {
                     continue;
                 } else if (filename.charAt(filename.length() - 1) == '/' ||
                         filename.charAt(filename.length() - 1) == '\\') {
@@ -40,12 +41,15 @@ public class ClientSender implements Runnable {
                 if (!file.exists()) {
                     System.out.println("/****************该文件不存在，请重新输入!****************/");
                 } else {
-                    StringBuilder temp = null;
-                    for (int i = filename.length() - 1; i >= 0; i++) {
+                    StringBuilder temp = new StringBuilder();
+                    // 发送不包括路径名的文件名
+                    for (int i = filename.length() - 1; i >= 0; i--) {
                         if (filename.charAt(i) == '/' || filename.charAt(i) == '\\') break;
                         temp.insert(0, filename.charAt(i));
                     }
-                    dout.writeUTF(temp.toString());
+                    String fileSize = String.valueOf(file.length());
+                    // ?后跟文件大小
+                    dout.writeUTF(temp.toString() + "?" + fileSize);
                     dout.flush();
                     break;
                 }
@@ -60,9 +64,11 @@ public class ClientSender implements Runnable {
             BufferedInputStream fin = new BufferedInputStream(f);
 
             byte[] bytes = new byte[1024];
-            int length;
-            while ((length = fin.read(bytes, 0, bytes.length)) != -1) {
-                dout.write(bytes, 0, bytes.length);
+            int length = 0;
+            long size = file.length();
+            while (length < size) {
+                length += fin.read(bytes, 0, bytes.length);
+                dout.write(bytes, 0, (length-1)%bytes.length+1);
                 dout.flush();
             }
             fin.close();
@@ -80,7 +86,7 @@ public class ClientSender implements Runnable {
         try {
             out = new DataOutputStream(client.getOutputStream());
             out.writeUTF("Hello ヾ(•ω•`)o");
-            while (true) {
+            while (!client.isClosed()) {
                 String input = bf.readLine();
                 if (input.equals("/q") || input.equals("quit")) { //需要退出客户端
                     out.writeUTF("--QUIT");
@@ -96,6 +102,8 @@ public class ClientSender implements Runnable {
                 System.out.println("============================================================");
             }
             client.close();
+        } catch (SocketException e) {
+            System.out.println("Socket已中断，请重新连接");
         } catch (IOException e) {
             e.printStackTrace();
         }

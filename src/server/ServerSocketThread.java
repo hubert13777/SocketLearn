@@ -11,6 +11,7 @@ public class ServerSocketThread implements Runnable{
         server=socket;
         System.out.println("连接成功, 远程主机地址为: " + server.getRemoteSocketAddress());
         System.out.println("============================================================");
+        System.out.println("                【输入\"/send_file\"传输文件】                ");
         System.out.println("                【输入\"quit\"或\"/q\"退出会话】                ");
         System.out.println("============================================================");
     }

@@ -6,27 +6,22 @@ import java.net.SocketException;
 
 public class ServerReceiver implements Runnable {
     Socket server;
-    private final String filePath = "./server/recv_file/";
+    private final String filePath = "recv_file/server/";
 
     public ServerReceiver(Socket socket) {
         server = socket;
+        // filePath目录不存在 则创建
+        File file = new File(filePath);
+        if (!file.exists()) {
+            if (!file.mkdirs()) {
+                System.out.println("创建" + filePath + "目录失败!!!");
+            }
+        }
     }
 
-    private void receiveFile(String filename) {
-        System.out.println("对方(Client)尝试向您传输文件[" + filename + "], 是否接收?(Y/N)");
-        BufferedReader bf = new BufferedReader(new InputStreamReader(System.in));
-        try {
-            String str = bf.readLine();
-            if (str.equals("Y") || str.equals("") || str.equals("y")) {
-                System.out.println("正在接收文件" + filename + "...");
-            } else {
-                System.out.println("用户拒绝接收文件");
-                return;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
+    private void receiveFile(String filename, long fileSize) {
+        System.out.println("对方(Client)尝试向您传输文件[" + filename + "], 文件大小为" + fileSize + "Byte");
+        System.out.println("正在接收文件...");
 
         File file = new File(filePath + filename);
 
@@ -35,9 +30,10 @@ public class ServerReceiver implements Runnable {
             BufferedOutputStream fout = new BufferedOutputStream(f);
             DataInputStream din = new DataInputStream(server.getInputStream());
             byte[] bytes = new byte[1024];
-            int length;
-            while ((length = din.read(bytes, 0, bytes.length)) != -1) {
-                fout.write(bytes, 0, length);
+            int length = 0;  // 文件长度
+            while (length < fileSize) {
+                length += din.read(bytes, 0, bytes.length);
+                fout.write(bytes, 0, (length-1)%1024+1);
                 fout.flush();
             }
             fout.close();
@@ -58,20 +54,20 @@ public class ServerReceiver implements Runnable {
             while (true) {
                 try {
                     String str = in.readUTF();
-                    if (str.equals("QUIT")) break;
+                    if (str.equals("--QUIT")) break;
                     else if (str.equals("--FILE")) {
-                        receiveFile(in.readUTF());
-                        continue;
+                        String[] file = in.readUTF().split("\\?", 2);
+                        receiveFile(file[0], Long.parseLong(file[1]));
+                    }else{
+                        char[] input = str.toCharArray();
+                        System.out.println("对方(Client): ");
+                        int length = input.length;
+                        for (int i = 1; i <= length; i++) {
+                            System.out.print(input[i - 1]);
+                            if (i % 30 == 0) System.out.println();
+                        }
+                        System.out.println();
                     }
-
-                    char[] input = str.toCharArray();
-                    System.out.println("对方(Client): ");
-                    int length = input.length;
-                    for (int i = 1; i <= length; i++) {
-                        System.out.print(input[i - 1]);
-                        if (i % 30 == 0) System.out.println();
-                    }
-                    System.out.println();
                 } catch (SocketException e) {
                     break;
                 }
